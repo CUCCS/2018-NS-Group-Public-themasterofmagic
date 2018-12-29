@@ -1,0 +1,26 @@
+svg {
+  cursor: default;
+}
+
+.link {
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+.node {
+  fill: #ccc;
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+text.id {
+  text-anchor: middle;
+  font-weight: bold;
+  font: 12px sans-serif;
+  pointer-events: none;
+}
+
+[disabled]
+{
+color:gray;
+}

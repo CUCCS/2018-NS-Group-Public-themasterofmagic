@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>VisualDNS</title>
+	<script src="jquery-3.3.1.js"></script>
+	<script src="d3.v5.js"></script>
+	<link rel="stylesheet" type="text/css" href="main.css">
+</head>
+<body>
+<div>
+	<label>请输入待查询的域名: </label>
+	<input id="domain" type="text" placeholder="sec.cuc.edu.cn">
+	<button id="queryBtn" onclick="query()">查询</button>
+</div>
+<div class="btn-group">
+	<button onclick="logic = true">逻辑视图</button>
+	<button onclick="logic = false">物理视图</button>
+</div>
+<svg id="graph">
+</svg>
+<script>
+	const svgWidth = 1950 / 2;
+	const svgHeight = 910 / 2;
+	
+	const imgWidth = 1950;
+	const imgHeight = 910;
+	const imgPadding = {'T': 50, 'B': 35, 'L': 20, 'R': 20};
+	
+	const nodeRadius = 5;
+	const nodeDistance = 100;
+	const timerInterval = 10;
+	const changeRate = 0.075;
+	
+	const colors = d3.scaleOrdinal(d3.schemeCategory10);
+	const body = d3.select('body');
+	
+	
+	let logic = true;
+	let querying = false;
+	let timer = null;
+	
+	
+	function simulate(queryRv) {
+		/* 重置svg元素 */
+		body.select('svg').remove();
+		const svg = body
+			.append('svg')
+			.attr('width', svgWidth)
+			.attr('height', svgHeight);
+		const defs = svg.append('defs');
+		defs.append('marker')
+			.attr('id', 'end-arrow')
+			.attr('viewBox', '0 -5 10 10')
+			.attr('refX', 6)
+			.attr('markerWidth', 3)
+			.attr('markerHeight', 3)
+			.attr('orient', 'auto')
+			.append('path')
+			.attr('d', 'M0,-5L10,0L0,5')
+			.attr('fill', '#000');
+		defs
+			.append("pattern")
+			.attr("id", "bg")
+			.attr('width', svgWidth)
+			.attr('height', svgHeight)
+			.attr('patternUnits', 'userSpaceOnUse')
+			.append("image")
+			.attr("xlink:href", "world_map.jpg")
+			.attr('width', svgWidth)
+			.attr('height', svgHeight);
+		svg.append('rect')
+			.attr('fill', 'url(#bg)')
+			.attr('width', svgWidth)
+			.attr('height', svgHeight);
+		
+		/* 构造节点数据 */
+		let nodeDatum = queryRv.path.map(function (domain, i) {
+			let geo = queryRv['ip_to_geo'][queryRv['domain_to_ip'][domain]];
+			let rv = {
+				value: domain,
+				id: i,
+				logicX: 200 + nodeDistance * i,
+				logicY: 100,
+				latitude: geo[0],
+				longitude: geo[1]
+			};
+			let pos = getPos(rv);
+			rv.x = pos[0];
+			rv.y = pos[1];
+			return rv;
+		});
+		
+		/* 构造边数据 */
+		let linkDatum = Array();
+		for (let i = 0; i < nodeDatum.length - 1; ++i) {
+			linkDatum.push({source: nodeDatum[i], target: nodeDatum[i + 1]});
+		}
+		
+		/* 生成节点元素与边元素 */
+		let allPath = svg.append('g').selectAll('path'); // 要先生成边, 否则它会覆盖在节点之上
+		let allNode = svg.append('g').selectAll('g');
+		
+		/* 绑定节点数据 */
+		allNode = allNode.data(nodeDatum, (d) => d.id);
+		allNode.exit().remove();
+		const g = allNode.enter().append('g');
+		g
+			.append('circle')
+			.attr('class', 'node')
+			.attr('r', nodeRadius)
+			.style('fill', (d) => d3.rgb(colors(d.id)).brighter().toString())
+		;
+		g.append('text')
+			.attr('x', 0)
+			.attr('y', 4)
+			.attr('class', 'id')
+			.text((d) => d.value)
+		;
+		allNode = allNode.merge(g);
+		
+		/* 绑定边数据 */
+		allPath = allPath.data(linkDatum);
+		allPath.exit().remove();
+		allPath = allPath.enter().append('svg:path')
+			.attr('class', 'link')
+			.style('marker-end', 'url(#end-arrow)')
+			.merge(allPath);
+		
+		/* 重置计时器 */
+		clearInterval(timer);
+		timer = setInterval(tick, timerInterval);
+		function tick() {
+			/* 更新数据 */
+			nodeDatum.forEach(function (data) {
+				let targetPos = getPos(data);
+				let targetX = targetPos[0], targetY = targetPos[1];
+				data.x += changeRate * (targetX - data.x);
+				data.y += changeRate * (targetY - data.y);
+			});
+			
+			/* 应用数据 */
+			allNode.attr('transform', (d) => `translate(${d.x},${d.y})`);
+			allPath.attr('d', (d) => {
+				const deltaX = d.target.x - d.source.x;
+				const deltaY = d.target.y - d.source.y;
+				const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY) + 1;
+				const normX = deltaX / dist;
+				const normY = deltaY / dist;
+				const sourcePadding = nodeRadius;
+				const targetPadding = nodeRadius + 5;
+				const sourceX = d.source.x + (sourcePadding * normX);
+				const sourceY = d.source.y + (sourcePadding * normY);
+				const targetX = d.target.x - (targetPadding * normX);
+				const targetY = d.target.y - (targetPadding * normY);
+				
+				return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+			});
+			
+		}
+	}
+
+</script>
+<script>
+	function getPos (data) {
+		return logic ? [data.logicX, data.logicY] : geoToSvgPos(data.longitude, data.latitude);
+	}
+	
+	function geoToSvgPos(longitude, latitude) {
+		let x = longitude;
+		let y = latitude;
+		
+		/* geo to image */
+		x = x / 360 + 0.5;
+		y = (y / 180 + 0.5) * 180 / 150;
+		x *= imgWidth - imgPadding['L'] - imgPadding['R'];
+		y *= imgHeight - imgPadding['T'] - imgPadding['B'];
+		x += imgPadding['L'];
+		y += imgPadding['T'];
+		
+		/* image to svg */
+		x *= svgWidth / imgWidth;
+		y *= svgHeight / imgHeight;
+		
+		return [x, y];
+	}
+	
+	function query() {
+		if (!querying) {
+			querying = true;
+			let queryBtn = $('#queryBtn');
+			let domainInput = $('#domain');
+			domainInput.val(domainInput.val() || domainInput.attr('placeholder'));
+			let domain = domainInput.val();
+			queryBtn.attr('disabled', '');
+			$.getJSON('/api/query?domain=' + domain, function (queryRv) {
+				querying = false;
+				queryBtn.removeAttr('disabled');
+				simulate(queryRv);
+			});
+		}
+	}
+	
+</script>
+</body>
+</html>
