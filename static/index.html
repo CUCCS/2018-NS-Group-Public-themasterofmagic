@@ -12,6 +12,7 @@
 	<label>请输入待查询的域名: </label>
 	<input id="domain" type="text" placeholder="sec.cuc.edu.cn">
 	<button id="queryBtn" onclick="query()">查询</button>
+	<label id="hint"></label>
 </div>
 <div class="btn-group">
 	<button onclick="logic = true">逻辑视图</button>
@@ -214,12 +215,30 @@
 			domainInput.val(domainInput.val() || domainInput.attr('placeholder'));
 			let domain = domainInput.val();
 			queryBtn.attr('disabled', '');
+			setHint('查询中, 请稍后...');
 			$.getJSON('/api/query?domain=' + domain, function (queryRv) {
 				querying = false;
 				queryBtn.removeAttr('disabled');
-				simulate(queryRv);
+				let status = queryRv['status'];
+				if (status !== 'FAIL') {
+					setHint('查询成功!域名' + domain + '拥有' + status + '记录' + queryRv['answer']);
+					simulate(queryRv);
+				}
+				else {
+					let value = queryRv['value'];
+					let reason = {
+						'NO_SUCH_DOMAIN': '没有这个域名!',
+						'TIMEOUT': 'DNS服务器无响应, 可能是网络不好?',
+						'UNKNOWN_ERROR': '未知错误!'
+					}[value] || '未知错误!';
+					setHint('查询失败!' + reason);
+				}
 			});
 		}
+	}
+	
+	function setHint (info) {
+		$('#hint').text(info);
 	}
 	
 </script>

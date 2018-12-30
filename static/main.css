@@ -23,3 +23,7 @@ text.id {
 [disabled] {
     color: gray;
 }
+
+#hint {
+    color: red;
+}
