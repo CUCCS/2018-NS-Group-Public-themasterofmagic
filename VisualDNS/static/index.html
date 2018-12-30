@@ -79,7 +79,6 @@
 		let l1 = 0.5, l2 = 0.5;
 		let sourceColor = d3.hsl(h1, s1, l1), destinationColor = d3.hsl(h2, s2, l2);
 		let computeColor = d3.interpolateHslLong(sourceColor, destinationColor);
-		console.log(sourceColor, destinationColor);
 		/* 构造节点数据 */
 		let linear = d3.scaleLinear().domain([0, queryRv.path.length-1]).range([0, 1]);
 		let nodeDatum = queryRv.path.map(function (domain, i) {
