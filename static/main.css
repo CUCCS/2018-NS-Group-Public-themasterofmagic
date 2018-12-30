@@ -1,26 +1,25 @@
 svg {
-  cursor: default;
+    cursor: default;
 }
 
 .link {
-  stroke: #000;
-  stroke-width: 2px;
+    stroke: #000;
+    stroke-width: 2px;
 }
 
 .node {
-  fill: #ccc;
-  stroke: #000;
-  stroke-width: 2px;
+    fill: #ccc;
+    stroke: #000;
+    stroke-width: 2px;
 }
 
 text.id {
-  text-anchor: middle;
-  font-weight: bold;
-  font: 12px sans-serif;
-  pointer-events: none;
+    text-anchor: middle;
+    font-weight: bold;
+    font: 12px sans-serif;
+    pointer-events: none;
 }
 
-[disabled]
-{
-color:gray;
+[disabled] {
+    color: gray;
 }
