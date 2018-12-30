@@ -34,7 +34,6 @@
 	const timerInterval = 10;
 	const changeRate = 0.075;
 	
-	const colors = d3.scaleOrdinal(d3.schemeCategory10);
 	
 	let logic = true;
 	let querying = false;
@@ -74,12 +73,20 @@
 		.attr('opacity', rectOpacity);
 		
 	function simulate(queryRv) {
+		/* 构造颜色生成器 */
+		let h1 = Math.random() * 360, h2 = (h1 + 60) % 360;
+		let s1 = 1, s2 = 1;
+		let l1 = 0.5, l2 = 0.5;
+		let sourceColor = d3.hsl(h1, s1, l1), destinationColor = d3.hsl(h2, s2, l2);
+		let computeColor = d3.interpolateHslLong(sourceColor, destinationColor);
+		console.log(sourceColor, destinationColor);
 		/* 构造节点数据 */
+		let linear = d3.scaleLinear().domain([0, queryRv.path.length-1]).range([0, 1]);
 		let nodeDatum = queryRv.path.map(function (domain, i) {
 			let geo = queryRv['ip_to_geo'][queryRv['domain_to_ip'][domain]];
 			let rv = {
 				value: domain,
-				id: i,
+				color: computeColor(linear(i)),
 				logicX: 200 + nodeDistance * i,
 				logicY: 100,
 				latitude: geo[0],
@@ -112,7 +119,7 @@
 			.append('circle')
 			.attr('class', 'node')
 			.attr('r', (d) => d.radius)
-			.style('fill', (d) => d3.rgb(colors(d.id)).brighter().toString())
+			.style('fill', (d) => d.color)
 		;
 		const allText = g.append('text')
 			.attr('x', 0)
