@@ -34,6 +34,11 @@
 	const timerInterval = 10;
 	const changeRate = 0.075;
 	
+	/* 读取根服务器的所有经纬度 */
+	let rootServersCoords = null;
+	$.getJSON('/root_servers.json', function (coords) {
+		rootServersCoords = coords;
+	});
 	
 	let logic = true;
 	let querying = false;
