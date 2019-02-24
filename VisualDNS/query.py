@@ -1,4 +1,5 @@
 import random
+import ipaddress
 import dns.resolver
 
 
@@ -79,3 +80,71 @@ def query(qname, ns=None, timeout=3):
 		print(e)
 	finally:
 		return rv
+
+
+def query_(qname, dns_server=None, qtype=None, timeout=1):
+	try:
+		resolver = dns.resolver.Resolver()
+		if dns_server:
+			try:
+				ipaddress.ip_address(dns_server)  # 检验是否是ip地址, 若不是则报ValueError
+			except ValueError:
+				raise AssertionError('INVALID_DNS_SERVER')
+			resolver.nameservers = [dns_server]
+			pass
+		qtype = qtype or 'A'
+		if qtype not in ('A', 'NS'):
+			raise ValueError()
+
+		rdata = resolver.query(qname, qtype, lifetime=timeout, raise_on_no_answer=False)
+		response = rdata.response
+		answers, additions = response.answer, response.additional
+		answers, additions = list(answers), list(additions)  # 3个由各种RRSet组成的list
+
+		# answers由若干CNAME RRSet以及A RRSet组成
+		# 若非空, 则将第一个RRSet的信息取出
+		rdtype = {1: 'A', 2: 'NS', 5: 'CNAME'}[answers[0].rdtype] if len(answers) else 'NS'
+		answers = list(_.to_text() for _ in answers[0]) if len(answers) else list()
+
+		# authorities包含在了additions中
+		# additions由若干A RRSet以及AAAA RRSet组成
+		# 取出其中的A记录, 建立由dict(name -> addresses)组成的list
+		authorities = list([rrset.name.to_text(), list(a.to_text() for a in rrset)] for rrset in additions if rrset.rdtype == 1)
+
+		rv = dict(
+			type=rdtype,
+			answers=answers,
+			authorities=authorities
+		)
+	except dns.resolver.NXDOMAIN:
+		# 不存在的域名
+		rv = dict(
+			type='FAIL',
+			info='NO_SUCH_DOMAIN'
+		)
+	except dns.exception.Timeout:
+		# 查询超时
+		rv = dict(
+			type='FAIL',
+			info='TIMEOUT'
+		)
+	except ValueError:
+		# 不支持的查询类型
+		rv = dict(
+			type='FAIL',
+			info='UNSUPPORTED_QTYPE'
+		)
+	except AssertionError as e:
+		# 自定义错误
+		rv = dict(
+			type='FAIL',
+			info=e.args[0]
+		)
+	except Exception as e:
+		# 未知错误
+		rv = dict(
+			type='FAIL',
+			info='UNKNOWN_ERROR'
+		)
+		print(e)
+	return rv
