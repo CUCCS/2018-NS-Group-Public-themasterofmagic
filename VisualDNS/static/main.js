@@ -1,3 +1,8 @@
+/* 定义页面元素的相关响应动作 */
+$('#queryBtn').attr('onclick', 'query()');
+$('#logicViewBtn').attr('onclick', 'logic = true');
+$('#physicalViewBtn').attr('onclick', 'logic = false');
+
 /* 常参数定义 */
 const svgWidth = 1950 / 2;
 const svgHeight = 910 / 2;
