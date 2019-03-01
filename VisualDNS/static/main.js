@@ -146,7 +146,7 @@ function simulate(queryRv) {
 		rectOpacity += changeRate * (1 - targetOpacity - rectOpacity);
 		
 		/* 应用数据 */
-		allNode.attr('transform', (d) => `translate(${d.x},${d.y})`);
+		allNode.attr('transform', (d) => "translate(${d.x},${d.y})");
 		allPath.attr('d', (d) => {
 			const deltaX = d.target.x - d.source.x;
 			const deltaY = d.target.y - d.source.y;

@@ -2,29 +2,27 @@ import os
 from flask import request, send_file
 from flask_api import FlaskAPI
 from query import query
-from geo import add_geo_info
 
 app = FlaskAPI(__name__)
 
 
 @app.route('/api/query')
 def api_query():
-	qname = request.args.get('domain', '')
-	ns = request.args.get('ns', '')
-	query_rv = query(qname, ns)
-	add_geo_info(query_rv)
-	return query_rv
+	qname = request.args.get('qname')
+	dns_server = request.args.get('dns_server')
+	qtype = request.args.get('qtype')
+	return query(qname, dns_server, qtype)
 
 
 @app.route('/<path:path>')
 def index(path):
 	path = 'static/{}'.format(path)
-	return send_file(path) if os.path.exists(path) else ''
+	return send_file(path) if os.path.exists(path) else ('', 404)
 
 
 @app.route('/')
 def _():
-	return send_file('static/index.html')
+	return send_file('static/main.html')
 
 
 if __name__ == '__main__':
