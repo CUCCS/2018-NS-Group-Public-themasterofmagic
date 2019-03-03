@@ -76,7 +76,7 @@
 		let newNode = allNode.enter().append("g");
 		allCircle = newNode.append("circle")
 			.attr("class", "node")
-			.style("fill", "cyan")
+			.style("fill", (d) => d.color)
 			.merge(allCircle)
 		;
 		allText = newNode.append("text")
@@ -91,15 +91,15 @@
 		allNode = allNode.merge(newNode);
 	}
 	
-	function plus(intLevel, strText, isChosen = false) {
+	function plus(strText, intLevel, intIndex, isChosen) {
 		nodeDataset.push({
 			level: intLevel,
 			currentX: Math.floor(Math.random() * svgWidth),
 			currentY: Math.floor(Math.random() * svgHeight),
 			logicX: 150 * intLevel,
-			logicY: 200,
+			logicY: 50 + 30 * intIndex,
 			currentR: 0,
-			targetR: 50,
+			targetR: 10,
 			currentOpacity: 1,
 			targetOpacity: 1,
 			text: strText,
@@ -160,6 +160,7 @@
 		}
 		
 		let intStepCount = 0;
+		let answers = [];
 		let answer = "";
 		let strDnsServerDomain = "";
 		let arrDnsServerIpWithGeo = "";
@@ -170,12 +171,14 @@
 			console.log("Step", intStepCount, "rv:", rv);
 			if (!checkQueryRv(rv)) return;
 			
-			let answers = rv.answers;
+			answers = rv.answers;
 			answer = chooseRandomItem(answers);
 			strDnsServerDomain = answer[0];
 			arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 			strDnsServerIp = arrDnsServerIpWithGeo[0];
-			plus(intStepCount, strDnsServerDomain);
+			answers.forEach((ans, i) => {
+				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+			});
 			
 			
 			/* Step 2 查询顶级域名NS记录 */
@@ -186,11 +189,14 @@
 				console.log("Step", intStepCount, "rv:", rv);
 				if (!checkQueryRv(rv)) return;
 				
-				answer = chooseRandomItem(rv.answers);
+				answers = rv.answers;
+				answer = chooseRandomItem(answers);
 				strDnsServerDomain = answer[0];
 				arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 				strDnsServerIp = arrDnsServerIpWithGeo[0];
-				plus(intStepCount, strDnsServerDomain);
+				answers.forEach((ans, i) => {
+					plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+				});
 				
 				/* Step 3 循环查询主机名A记录 */
 				function loopBody(rv) {
@@ -199,11 +205,14 @@
 					if (!checkQueryRv(rv)) return;
 					
 					if(rv.type === "NS") {
-						answer = chooseRandomItem(rv.answers);
+						answers = rv.answers;
+						answer = chooseRandomItem(answers);
 						strDnsServerDomain = answer[0];
 						arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 						strDnsServerIp = arrDnsServerIpWithGeo[0];
-						plus(intStepCount, strDnsServerDomain);
+						answers.forEach((ans, i) => {
+							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+						});
 						
 						query(strQueryDomain, strDnsServerIp, "A", loopBody);
 					}
