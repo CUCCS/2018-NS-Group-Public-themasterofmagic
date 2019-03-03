@@ -119,7 +119,6 @@
 			.style("text-anchor", "middle")
 			.merge(allText)
 		;
-		
 		allNode = allNode.merge(newNode);
 		
 		/* path部分 */
@@ -192,8 +191,9 @@
 	
 	function btnQueryOnclick() {
 		/* 重置svg */
-		allNode.remove();
-		allPath.remove();
+		nodeDataset = [];
+		pathDataset = [];
+		update();
 		
 		/* 获取参数 */
 		let inputQueryDomain = $("#inputQueryDomain");
@@ -229,7 +229,6 @@
 			answers.forEach((ans, i) => {
 				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
 			});
-			
 			
 			/* Step 2 查询顶级域名NS记录 */
 			let parts = strQueryDomain.split('.');
