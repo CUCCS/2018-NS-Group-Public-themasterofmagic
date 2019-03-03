@@ -5,6 +5,7 @@
 	<title>temp</title>
 	<script src="jquery-3.3.1.js"></script>
 	<script src="d3.v5.js"></script>
+	<link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
 <svg>
@@ -30,6 +31,7 @@
 	const svgHeight = 910 / 2;
 	const timerInterval = 10;
 	const changeRate = 0.01;
+	const arrowHeadHeight = 3;
 	
 	/* 全局变量 */
 	let isLogic = false;
@@ -44,8 +46,20 @@
 	const svg = d3.select("body").select("svg")
 		.attr('width', svgWidth)
 		.attr('height', svgHeight);
+	const defs = svg.append('defs');
+	defs.append('marker')
+		.attr('id', 'end-arrow')
+		.attr('viewBox', '0 -5 10 10')
+		.attr('refX', 6)
+		.attr('markerWidth', 3)
+		.attr('markerHeight', arrowHeadHeight)
+		.attr('orient', 'auto')
+		.append('path')
+		.attr('d', 'M0,-5L10,0L0,5')
+		.attr('fill', '#000');
 	
-	let allNode = svg.selectAll("g");
+	let allPath = svg.append("g").selectAll("path");
+	let allNode = svg.append("g").selectAll("g");
 	let allText = allNode.append("text");
 	let allCircle = allNode.append("circle");
 	
@@ -59,16 +73,38 @@
 			d.currentR += changeRate * (d.targetR - d.currentR);
 			d.currentOpacity += changeRate * (d.targetOpacity - d.currentOpacity);
 		});
+		
 		/* 应用计算结果 */
 		allNode.attr("transform", (d) => `translate(${d.currentX},${d.currentY})`);
 		allNode.attr("opacity", (d) => d.currentOpacity);
 		allNode.selectAll("circle").attr("r", (d) => d.currentR);
 		allNode.selectAll("text").attr("opacity", (d) => d.currentOpacity);
+		
+		allPath
+			.attr("d", (d) => {
+				const deltaX = d.target.currentX - d.source.currentX;
+				const deltaY = d.target.currentY - d.source.currentY;
+				const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY) + 1;
+				const normX = deltaX / dist;
+				const normY = deltaY / dist;
+				const sourcePadding = d.source.currentR;
+				const targetPadding = d.target.currentR + arrowHeadHeight;
+				const sourceX = d.source.currentX + (sourcePadding * normX);
+				const sourceY = d.source.currentY + (sourcePadding * normY);
+				const targetX = d.target.currentX - (targetPadding * normX);
+				const targetY = d.target.currentY - (targetPadding * normY);
+				
+				return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+			})
+			.attr("opacity", (d) => d.source.currentOpacity * d.target.currentOpacity)
+		;
 	});
 	
 	let nodeDataset = [];
+	let pathDataset = [];
 	
 	function update() {
+		/* node部分 */
 		allNode = allNode
 			.data(nodeDataset);
 		allNode.exit().remove();
@@ -89,10 +125,28 @@
 		;
 		
 		allNode = allNode.merge(newNode);
+		
+		/* path部分 */
+		pathDataset = [];
+		for (let i = 0; i < nodeDataset.length - 1; ++i) {
+			for (let j = i+1; j < nodeDataset.length; ++j) {
+				let nodeDataA = nodeDataset[i], nodeDataB = nodeDataset[j];
+				if(nodeDataA.isChosen && nodeDataA.level + 1 === nodeDataB.level) {
+					pathDataset.push({source: nodeDataset[i], target: nodeDataset[j]});
+				}
+			}
+		}
+		allPath = allPath
+			.data(pathDataset);
+		allPath.exit().remove();
+		allPath = allPath.enter().append('svg:path')
+			.attr("class", "link")
+			.style('marker-end', 'url(#end-arrow)')
+			.merge(allPath);
 	}
 	
 	function plus(strText, intLevel, intIndex, isChosen) {
-		nodeDataset.push({
+		let data ={
 			level: intLevel,
 			currentX: Math.floor(Math.random() * svgWidth),
 			currentY: Math.floor(Math.random() * svgHeight),
@@ -100,19 +154,16 @@
 			logicY: 50 + 30 * intIndex,
 			currentR: 0,
 			targetR: 10,
-			currentOpacity: 1,
+			currentOpacity: 0,
 			targetOpacity: 1,
 			text: strText,
+			isChosen: isChosen,
 			color: isChosen ? "red" : "gray"
-		});
+		};
+		nodeDataset.push(data);
 		update();
 	}
 	
-	function minus() {
-		nodeDataset.splice(0, 1);
-		update();
-	}
-
 </script>
 <script>
 	function checkQueryDomain(domain) {
@@ -146,6 +197,7 @@
 	function btnQueryOnclick() {
 		/* 重置svg */
 		allNode.remove();
+		allPath.remove();
 		
 		/* 获取参数 */
 		let inputQueryDomain = $("#inputQueryDomain");
