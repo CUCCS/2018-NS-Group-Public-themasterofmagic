@@ -96,7 +96,7 @@
 			level: intLevel,
 			currentX: Math.floor(Math.random() * svgWidth),
 			currentY: Math.floor(Math.random() * svgHeight),
-			logicX: 150 * intLevel,
+			logicX: 100 + 150 * intLevel,
 			logicY: 50 + 30 * intIndex,
 			currentR: 0,
 			targetR: 10,
@@ -164,6 +164,8 @@
 		let answer = "";
 		let strDnsServerDomain = "";
 		let arrDnsServerIpWithGeo = "";
+		
+		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true);
 		
 		/* Step 1 查询根域名NS记录 */
 		query(".", strDnsServerIp, "NS", (rv) => {
