@@ -31,6 +31,9 @@
 	const timerInterval = 10;
 	const changeRate = 0.01;
 	
+	/* 全局变量 */
+	let isLogic = false;
+	
 	/* 定义全局计时器 */
 	let timerUpdates = [];
 	setInterval(() => {
@@ -42,50 +45,72 @@
 		.attr('width', svgWidth)
 		.attr('height', svgHeight);
 	
-	let circle = svg.selectAll("circle");
+	let allNode = svg.selectAll("g");
+	let allText = allNode.append("text");
+	let allCircle = allNode.append("circle");
+	
 	timerUpdates.push(() => {
-		circleDataset.forEach((d) => {
-			d.currentX += changeRate * (d.targetX - d.currentX);
-			d.currentY += changeRate * (d.targetY - d.currentY);
+		/* 根据变化率计算各属性的新值 */
+		nodeDataset.forEach((d) => {
+			d.targetX = isLogic ? d.logicX : d.physicalX;
+			d.targetY = isLogic ? d.logicY : d.physicalY;
+			d.currentX += changeRate * (d.logicX - d.currentX);
+			d.currentY += changeRate * (d.logicY - d.currentY);
 			d.currentR += changeRate * (d.targetR - d.currentR);
 			d.currentOpacity += changeRate * (d.targetOpacity - d.currentOpacity);
 		});
-		circle.attr("transform", (d) => `translate(${d.currentX},${d.currentY})`);
-		circle.attr("r", (d) => d.currentR);
-		circle.attr("opacity", (d) => d.currentOpacity);
+		/* 应用计算结果 */
+		allNode.attr("transform", (d) => `translate(${d.currentX},${d.currentY})`);
+		allNode.attr("opacity", (d) => d.currentOpacity);
+		allNode.selectAll("circle").attr("r", (d) => d.currentR);
+		allNode.selectAll("text").attr("opacity", (d) => d.currentOpacity);
 	});
 	
-	let circleDataset = [];
+	let nodeDataset = [];
 	
-	function plus() {
-		circleDataset.push({
+	function update() {
+		allNode = allNode
+			.data(nodeDataset);
+		allNode.exit().remove();
+		
+		let newNode = allNode.enter().append("g");
+		allCircle = newNode.append("circle")
+			.attr("class", "node")
+			.style("fill", "cyan")
+			.merge(allCircle)
+		;
+		allText = newNode.append("text")
+			.attr("x", 0)
+			.attr("y", 4)
+			.attr("class", "id")
+			.text((d) => d.text)
+			.style("text-anchor", "middle")
+			.merge(allText)
+		;
+		
+		allNode = allNode.merge(newNode);
+	}
+	
+	function plus(intLevel, strText, isChosen = false) {
+		nodeDataset.push({
+			level: intLevel,
 			currentX: Math.floor(Math.random() * svgWidth),
 			currentY: Math.floor(Math.random() * svgHeight),
-			targetX: Math.floor(Math.random() * svgWidth),
-			targetY: Math.floor(Math.random() * svgHeight),
+			logicX: 150 * intLevel,
+			logicY: 200,
 			currentR: 0,
 			targetR: 50,
-			currentOpacity: 0,
-			targetOpacity: 1
+			currentOpacity: 1,
+			targetOpacity: 1,
+			text: strText,
+			color: isChosen ? "red" : "gray"
 		});
 		update();
 	}
 	
 	function minus() {
-		circleDataset.splice(0, 1);
+		nodeDataset.splice(0, 1);
 		update();
-	}
-	
-	function update() {
-		circle = circle
-			.data(circleDataset);
-		circle.exit().remove();
-		circle = circle
-			.enter().append("circle")
-			.attr("fill", "black")
-			.merge(circle)
-		;
-		
 	}
 
 </script>
@@ -119,6 +144,10 @@
 	}
 	
 	function btnQueryOnclick() {
+		/* 重置svg */
+		allNode.remove();
+		
+		/* 获取参数 */
 		let inputQueryDomain = $("#inputQueryDomain");
 		let inputDnsServerIp = $("#inputDnsServerIp");
 		let strQueryDomain = inputQueryDomain.val() || inputQueryDomain.attr("placeholder");
@@ -137,29 +166,36 @@
 		
 		/* Step 1 查询根域名NS记录 */
 		query(".", strDnsServerIp, "NS", (rv) => {
-			console.log("Step", ++intStepCount, "rv:", rv);
+			intStepCount += 1;
+			console.log("Step", intStepCount, "rv:", rv);
 			if (!checkQueryRv(rv)) return;
 			
-			answer = chooseRandomItem(rv.answers);
+			let answers = rv.answers;
+			answer = chooseRandomItem(answers);
 			strDnsServerDomain = answer[0];
 			arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 			strDnsServerIp = arrDnsServerIpWithGeo[0];
+			plus(intStepCount, strDnsServerDomain);
+			
 			
 			/* Step 2 查询顶级域名NS记录 */
 			let parts = strQueryDomain.split('.');
 			let strTopDomain = parts[parts.length - (parts[parts.length - 1] === "" ? 2 : 1)] + ".";
 			query(strTopDomain, strDnsServerIp, "NS", (rv) => {
-				console.log("Step", ++intStepCount, "rv:", rv);
+				intStepCount += 1;
+				console.log("Step", intStepCount, "rv:", rv);
 				if (!checkQueryRv(rv)) return;
 				
 				answer = chooseRandomItem(rv.answers);
 				strDnsServerDomain = answer[0];
 				arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 				strDnsServerIp = arrDnsServerIpWithGeo[0];
+				plus(intStepCount, strDnsServerDomain);
 				
 				/* Step 3 循环查询主机名A记录 */
 				function loopBody(rv) {
-					console.log("Step", ++intStepCount, "rv:", rv);
+					intStepCount += 1;
+					console.log("Step", intStepCount, "rv:", rv);
 					if (!checkQueryRv(rv)) return;
 					
 					if(rv.type === "NS") {
@@ -167,6 +203,7 @@
 						strDnsServerDomain = answer[0];
 						arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 						strDnsServerIp = arrDnsServerIpWithGeo[0];
+						plus(intStepCount, strDnsServerDomain);
 						
 						query(strQueryDomain, strDnsServerIp, "A", loopBody);
 					}
