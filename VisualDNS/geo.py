@@ -7,6 +7,6 @@ def ip_with_geo_info(ip):
 	response = reader.city(ip)
 	return (ip, (
 		# response.country.names['zh-CN'],
-		-response.location.latitude,
-		response.location.longitude
+		response.location.longitude,
+		-response.location.latitude
 	))

@@ -14,11 +14,13 @@
 	<label>待查询的域名: </label>
 	<input id="inputQueryDomain" type="text" placeholder="sec.cuc.edu.cn">
 	<br>
-	<label>指定名称服务器IP(可选): </label>
-	<input id="inputDnsServerIp" type="text">
+	<label>指定名称服务器IP(可选): <input id="inputDnsServerIp" type="text"></label>
 	<br>
 	<button id="btnQuery" onclick="btnQueryOnclick()">查询</button>
 	<label id="lbHint"></label>
+	<br>
+	<button onclick="isLogic=true; applyIsLogic()">逻辑视图</button>
+	<button onclick="isLogic=false; applyIsLogic()">物理视图</button>
 </div>
 </body>
 <script>
@@ -28,9 +30,15 @@
 	const timerInterval = 10;
 	const changeRate = 0.01;
 	const arrowHeadHeight = 3;
+	const imgWidth = 1950;
+	const imgHeight = 910;
+	const imgPadding = {'T': 50, 'B': 35, 'L': 20, 'R': 20};
+	const logicR = 10;
+	const physicalR = 10;
 	
 	/* 全局变量 */
-	let isLogic = false;
+	let isLogic = true;
+	let rectOpacity = !isLogic;
 	
 	/* 定义全局计时器 */
 	let timerUpdates = [];
@@ -53,6 +61,21 @@
 		.append('path')
 		.attr('d', 'M0,-5L10,0L0,5')
 		.attr('fill', '#000');
+	defs
+		.append("pattern")
+		.attr("id", "bg")
+		.attr('width', svgWidth)
+		.attr('height', svgHeight)
+		.attr('patternUnits', 'userSpaceOnUse')
+		.append("image")
+		.attr("xlink:href", "world_map_small.jpg")
+		.attr('width', svgWidth)
+		.attr('height', svgHeight);
+	const rect = svg.append('rect')
+		.attr('fill', 'url(#bg)')
+		.attr('width', svgWidth)
+		.attr('height', svgHeight)
+		.attr('opacity', rectOpacity);
 	
 	let allPath = svg.append("g").selectAll("path");
 	let allNode = svg.append("g").selectAll("g");
@@ -62,20 +85,18 @@
 	timerUpdates.push(() => {
 		/* 根据变化率计算各属性的新值 */
 		nodeDataset.forEach((d) => {
-			d.targetX = isLogic ? d.logicX : d.physicalX;
-			d.targetY = isLogic ? d.logicY : d.physicalY;
-			d.currentX += changeRate * (d.logicX - d.currentX);
-			d.currentY += changeRate * (d.logicY - d.currentY);
-			d.currentR += changeRate * (d.targetR - d.currentR);
-			d.currentOpacity += changeRate * (d.targetOpacity - d.currentOpacity);
+			d.currentX += changeRate * (d.targetX - d.currentX);
+			d.currentY += changeRate * (d.targetY - d.currentY);
+			d.currentR += Math.pow(changeRate, 0.9) * (d.targetR - d.currentR);
+			d.currentOpacity += Math.pow(changeRate, 1) * (d.targetOpacity - d.currentOpacity);
 		});
+		rectOpacity += changeRate * (!isLogic - rectOpacity);
 		
 		/* 应用计算结果 */
 		allNode.attr("transform", (d) => `translate(${d.currentX},${d.currentY})`);
 		allNode.attr("opacity", (d) => d.currentOpacity);
 		allNode.selectAll("circle").attr("r", (d) => d.currentR);
 		allNode.selectAll("text").attr("opacity", (d) => d.currentOpacity);
-		
 		allPath
 			.attr("d", (d) => {
 				const deltaX = d.target.currentX - d.source.currentX;
@@ -94,10 +115,32 @@
 			})
 			.attr("opacity", (d) => d.source.currentOpacity * d.target.currentOpacity)
 		;
+		rect.attr("opacity", rectOpacity);
 	});
 	
 	let nodeDataset = [];
 	let pathDataset = [];
+	
+	function setTarget(d) {
+		if (isLogic) {
+			d.targetX = d.logicX;
+			d.targetY = d.logicY;
+			d.targetR = logicR;
+		}
+		else {
+			let pos = geoToSvgPos(d.longitude, d.latitude);
+			d.targetX = pos[0];
+			d.targetY = pos[1];
+			d.targetR = physicalR;
+		}
+	}
+	
+	function applyIsLogic() {
+		nodeDataset.forEach((d) => {
+			setTarget(d);
+			console.log([d.targetX, d.targetY]);
+		})
+	}
 	
 	function update() {
 		/* node部分 */
@@ -140,22 +183,25 @@
 			.merge(allPath);
 	}
 	
-	function plus(strText, intLevel, intIndex, isChosen) {
-		let data ={
+	function plus(strText, intLevel, intIndex, isChosen, geo) {
+		let d ={
 			level: intLevel,
-			currentX: Math.floor(Math.random() * svgWidth),
-			currentY: Math.floor(Math.random() * svgHeight),
+			longitude: geo[0],
+			latitude: geo[1],
 			logicX: 100 + 150 * intLevel,
 			logicY: 50 + 30 * intIndex,
-			currentR: 0,
+			currentR: 100,
 			targetR: 10,
 			currentOpacity: 0,
 			targetOpacity: 1,
 			text: strText,
 			isChosen: isChosen,
-			color: isChosen ? "red" : "gray"
+			color: isChosen ? "lightgreen" : "gray"
 		};
-		nodeDataset.push(data);
+		setTarget(d);
+		d.currentX = d.targetX;
+		d.currentY = d.targetY;
+		nodeDataset.push(d);
 		update();
 	}
 	
@@ -213,7 +259,7 @@
 		let strDnsServerDomain = "";
 		let arrDnsServerIpWithGeo = "";
 		
-		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true);
+		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, [0, 0]);
 		
 		/* Step 1 查询根域名NS记录 */
 		query(".", strDnsServerIp, "NS", (rv) => {
@@ -227,7 +273,8 @@
 			arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 			strDnsServerIp = arrDnsServerIpWithGeo[0];
 			answers.forEach((ans, i) => {
-				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
+				
 			});
 			
 			/* Step 2 查询顶级域名NS记录 */
@@ -244,7 +291,7 @@
 				arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 				strDnsServerIp = arrDnsServerIpWithGeo[0];
 				answers.forEach((ans, i) => {
-					plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+					plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
 				});
 				
 				/* Step 3 循环查询主机名A记录 */
@@ -260,7 +307,7 @@
 						arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
 						strDnsServerIp = arrDnsServerIpWithGeo[0];
 						answers.forEach((ans, i) => {
-							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain);
+							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
 						});
 						
 						query(strQueryDomain, strDnsServerIp, "A", loopBody);
@@ -278,6 +325,25 @@
 <script>
 	function chooseRandomItem(items) {
 		return items[Math.floor(Math.random() * items.length)];
+	}
+	
+	function geoToSvgPos(longitude, latitude) {
+		let x = longitude;
+		let y = latitude;
+		
+		/* geo to image */
+		x = x / 360 + 0.5;
+		y = (y / 180 + 0.5) * 180 / 150;
+		x *= imgWidth - imgPadding['L'] - imgPadding['R'];
+		y *= imgHeight - imgPadding['T'] - imgPadding['B'];
+		x += imgPadding['L'];
+		y += imgPadding['T'];
+		
+		/* image to svg */
+		x *= svgWidth / imgWidth;
+		y *= svgHeight / imgHeight;
+		
+		return [x, y];
 	}
 </script>
 </html>
