@@ -33,8 +33,8 @@
 	const imgWidth = 1950;
 	const imgHeight = 910;
 	const imgPadding = {'T': 50, 'B': 35, 'L': 20, 'R': 20};
-	const logicR = 10;
-	const physicalR = 10;
+	const logicR = 10, physicalR = 10;
+	const logicTextOpacity = 1, physicalTextOpacity = 0;
 	
 	/* 全局变量 */
 	let isLogic = true;
@@ -88,15 +88,16 @@
 			d.currentX += changeRate * (d.targetX - d.currentX);
 			d.currentY += changeRate * (d.targetY - d.currentY);
 			d.currentR += Math.pow(changeRate, 0.9) * (d.targetR - d.currentR);
-			d.currentOpacity += Math.pow(changeRate, 1) * (d.targetOpacity - d.currentOpacity);
+			d.currentNodeOpacity += Math.pow(changeRate, 1) * (d.targetNodeOpacity - d.currentNodeOpacity);
+			d.currentTextOpacity += changeRate * (d.targetTextOpacity - d.currentTextOpacity);
 		});
 		rectOpacity += changeRate * (!isLogic - rectOpacity);
 		
 		/* 应用计算结果 */
 		allNode.attr("transform", (d) => `translate(${d.currentX},${d.currentY})`);
-		allNode.attr("opacity", (d) => d.currentOpacity);
+		allNode.attr("opacity", (d) => d.currentNodeOpacity);
 		allNode.selectAll("circle").attr("r", (d) => d.currentR);
-		allNode.selectAll("text").attr("opacity", (d) => d.currentOpacity);
+		allNode.selectAll("text").attr("opacity", (d) => d.currentNodeOpacity);
 		allPath
 			.attr("d", (d) => {
 				const deltaX = d.target.currentX - d.source.currentX;
@@ -113,8 +114,10 @@
 				
 				return `M${sourceX},${sourceY}L${targetX},${targetY}`;
 			})
-			.attr("opacity", (d) => d.source.currentOpacity * d.target.currentOpacity)
+			.attr("opacity", (d) => d.source.currentNodeOpacity * d.target.currentNodeOpacity)
 		;
+		allText.attr("opacity", (d) => d.currentTextOpacity);
+		allCircle.style("fill", (d) => d.color);
 		rect.attr("opacity", rectOpacity);
 	});
 	
@@ -126,19 +129,22 @@
 			d.targetX = d.logicX;
 			d.targetY = d.logicY;
 			d.targetR = logicR;
+			d.targetNodeOpacity = 1;
+			d.targetTextOpacity = logicTextOpacity;
 		}
 		else {
 			let pos = geoToSvgPos(d.longitude, d.latitude);
 			d.targetX = pos[0];
 			d.targetY = pos[1];
 			d.targetR = physicalR;
+			d.targetNodeOpacity = d.isChosen || d.isStub ? 1 : 0;
+			d.targetTextOpacity = physicalTextOpacity;
 		}
 	}
 	
 	function applyIsLogic() {
 		nodeDataset.forEach((d) => {
 			setTarget(d);
-			console.log([d.targetX, d.targetY]);
 		})
 	}
 	
@@ -148,16 +154,21 @@
 			.data(nodeDataset);
 		allNode.exit().remove();
 		
-		let newNode = allNode.enter().append("g");
+		let newNode = allNode.enter().append("g")
+			.on("click", (d) => {
+				if (!d.isChosen) {
+					d.isStub = !d.isStub;
+					d.color = d.isStub ? "red" : "gray"
+				}
+			})
+		;
 		allCircle = newNode.append("circle")
 			.attr("class", "node")
-			.style("fill", (d) => d.color)
 			.merge(allCircle)
 		;
 		allText = newNode.append("text")
 			.attr("x", 0)
 			.attr("y", 4)
-			.attr("class", "id")
 			.text((d) => d.text)
 			.style("text-anchor", "middle")
 			.merge(allText)
@@ -192,15 +203,17 @@
 			logicY: 50 + 30 * intIndex,
 			currentR: 100,
 			targetR: 10,
-			currentOpacity: 0,
-			targetOpacity: 1,
+			currentNodeOpacity: 0,
+			targetNodeOpacity: 1,
 			text: strText,
 			isChosen: isChosen,
-			color: isChosen ? "lightgreen" : "gray"
+			isStub: false,
+			color: isChosen ? "green" : "gray"
 		};
 		setTarget(d);
 		d.currentX = d.targetX;
 		d.currentY = d.targetY;
+		d.currentTextOpacity = d.targetTextOpacity;
 		nodeDataset.push(d);
 		update();
 	}
@@ -259,7 +272,7 @@
 		let strDnsServerDomain = "";
 		let arrDnsServerIpWithGeo = "";
 		
-		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, [0, 0]);
+		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, [0, 0]); // To do: 把0,0换成本地真实坐标
 		
 		/* Step 1 查询根域名NS记录 */
 		query(".", strDnsServerIp, "NS", (rv) => {
