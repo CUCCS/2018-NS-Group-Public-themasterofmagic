@@ -29,7 +29,7 @@
 	const svgHeight = 910 / 2;
 	const timerInterval = 10;
 	const changeRate = 0.01;
-	const arrowHeadHeight = 3;
+	const arrowHeadHeight = 5;
 	const imgWidth = 1950;
 	const imgHeight = 910;
 	const imgPadding = {'T': 50, 'B': 35, 'L': 20, 'R': 20};
@@ -55,7 +55,7 @@
 		.attr('id', 'end-arrow')
 		.attr('viewBox', '0 -5 10 10')
 		.attr('refX', 6)
-		.attr('markerWidth', 3)
+		.attr('markerWidth', 5)
 		.attr('markerHeight', arrowHeadHeight)
 		.attr('orient', 'auto')
 		.append('path')
@@ -161,6 +161,12 @@
 					d.color = d.isStub ? "red" : "gray"
 				}
 			})
+			.on("mouseover", (d) => {
+				d.targetR = 50;
+			})
+			.on("mouseout", (d) => {
+				d.targetR = 10;
+			})
 		;
 		allCircle = newNode.append("circle")
 			.attr("class", "node")
@@ -174,6 +180,7 @@
 			.merge(allText)
 		;
 		allNode = allNode.merge(newNode);
+		allNode.filter((d) => d.isChosen).bringElementAsTopLayer();
 		
 		/* path部分 */
 		pathDataset = [];
@@ -358,5 +365,11 @@
 		
 		return [x, y];
 	}
+	
+	d3.selection.prototype.bringElementAsTopLayer = function() {
+		 return this.each(function(){
+				 this.parentNode.appendChild(this);
+		 });
+	};
 </script>
 </html>
