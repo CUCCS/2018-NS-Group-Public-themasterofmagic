@@ -22,7 +22,12 @@ def index(path):
 
 @app.route('/')
 def _():
-	return send_file('static/main.html')
+	return send_file('main.html')
+
+
+@app.route('/temp')
+def _temp():
+	return send_file('temp.html')
 
 
 if __name__ == '__main__':
