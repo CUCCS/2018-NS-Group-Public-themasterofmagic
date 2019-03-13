@@ -16,7 +16,6 @@ def api_query():
 
 @app.route('/<path:path>')
 def index(path):
-	path = 'static/{}'.format(path)
 	return send_file(path) if os.path.exists(path) else ('', 404)
 
 

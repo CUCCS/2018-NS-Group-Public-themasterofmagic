@@ -2,31 +2,43 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>temp</title>
-	<script src="d3.v5.js"></script>
-	<script src="jquery-3.3.1.js"></script>
-	<script src="popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-	<script src="bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
- 	<link rel="stylesheet" href="bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-	<link rel="stylesheet" href="main.css">
+	<title>VisualDNS</title>
+	<script src="static/d3.v5.js"></script>
+	<script src="static/jquery-3.3.1.js"></script>
+	<script src="static/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+	<script src="static/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+	<script defer src="static/solid.js" integrity="sha384-6FXzJ8R8IC4v/SKPI8oOcRrUkJU8uvFK6YJ4eDY11bJQz4lRw5/wGthflEOX8hjL" crossorigin="anonymous"></script>
+	<script defer src="static/fontawesome.js" integrity="sha384-xl26xwG2NVtJDw2/96Lmg09++ZjrXPc89j0j7JHjLOdSwHDHPHiucUjfllW0Ywrq" crossorigin="anonymous"></script>
+ 	<link rel="stylesheet" href="static/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+	<link rel="stylesheet" href="static/main.css">
 </head>
 <body>
-<svg>
-</svg>
-<div>
-	<label>待查询的域名: </label>
-	<input id="inputQueryDomain" type="text" placeholder="sec.cuc.edu.cn">
-	<br>
-	<label>指定名称服务器IP(可选): <input id="inputDnsServerIp" type="text"></label>
-	<br>
-	<button id="btnQuery" onclick="btnQueryOnclick()">查询</button>
-	<label id="lbHint"></label>
-	<br>
-	<div class="btn-group" role="group">
-		<button type="button" class="btn btn-primary" onclick="isLogic=true; applyIsLogic()">逻辑视图</button>
-		<button type="button" class="btn btn-primary" onclick="isLogic=false; applyIsLogic()">物理视图</button>
-	</div>
-</div>
+	<svg>
+	</svg>
+	
+		<div class="input-group mb-3 ml-3">
+			<input id="inputDnsServerIp" type="text" placeholder="DNS服务器">
+			<div class="input-group-append">
+				<button class="btn btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+				<div class="dropdown-menu">
+					<label class="dropdown-item">(没有可用的DNS服务器)</label>
+				</div>
+			</div>
+		</div>
+		
+		<div class="input-group mb-3 ml-3">
+			<input id="inputQueryDomain" type="text" placeholder="待查询的域名">
+			<div class="input-group-append">
+				<button class="btn btn-outline-primary" type="button"><i class="fas fa-redo"></i></button>
+				<button class="btn btn-outline-primary" type="button" onclick="query()">查询</button>
+			</div>
+		</div>
+	
+		<div class="btn-group mb-3 ml-3" role="group">
+			<button type="button" class="btn btn-primary" onclick="isLogic=true; applyIsLogic()">逻辑视图</button>
+			<button type="button" class="btn btn-primary" onclick="isLogic=false; applyIsLogic()">物理视图</button>
+		</div>
+
 </body>
 <script>
 	/* 常参数定义 */
@@ -73,7 +85,7 @@
 		.attr('height', svgHeight)
 		.attr('patternUnits', 'userSpaceOnUse')
 		.append("image")
-		.attr("xlink:href", "world_map_small.jpg")
+		.attr("xlink:href", "static/world_map_small.jpg")
 		.attr('width', svgWidth)
 		.attr('height', svgHeight);
 	const rect = svg.append('rect')
@@ -255,12 +267,12 @@
 		return isOk;
 	}
 	
-	function query(strDomain, strDnsServer, strQueryType, callback) {
+	function raw_query(strDomain, strDnsServer, strQueryType, callback) {
 		let url = "/api/query?qname=" + strDomain + "&dns_server=" + strDnsServer + "&qtype=" + strQueryType;
 		$.getJSON(url, callback);
 	}
 	
-	function btnQueryOnclick() {
+	function query() {
 		/* 重置svg */
 		nodeDataset = [];
 		pathDataset = [];
@@ -287,7 +299,7 @@
 		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, [0, 0]); // To do: 把0,0换成本地真实坐标
 		
 		/* Step 1 查询根域名NS记录 */
-		query(".", strDnsServerIp, "NS", (rv) => {
+		raw_query(".", strDnsServerIp, "NS", (rv) => {
 			intStepCount += 1;
 			console.log("Step", intStepCount, "rv:", rv);
 			if (!checkQueryRv(rv)) return;
@@ -305,7 +317,7 @@
 			/* Step 2 查询顶级域名NS记录 */
 			let parts = strQueryDomain.split('.');
 			let strTopDomain = parts[parts.length - (parts[parts.length - 1] === "" ? 2 : 1)] + ".";
-			query(strTopDomain, strDnsServerIp, "NS", (rv) => {
+			raw_query(strTopDomain, strDnsServerIp, "NS", (rv) => {
 				intStepCount += 1;
 				console.log("Step", intStepCount, "rv:", rv);
 				if (!checkQueryRv(rv)) return;
@@ -335,14 +347,14 @@
 							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
 						});
 						
-						query(strQueryDomain, strDnsServerIp, "A", loopBody);
+						raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
 					}
 					else{
 						let strAnswer = chooseRandomItem(rv.answers);
 						console.log("found", rv.type, "record", strAnswer);
 					}
 				}
-				query(strQueryDomain, strDnsServerIp, "A", loopBody);
+				raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
 			})
 		});
 	}
