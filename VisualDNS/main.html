@@ -13,33 +13,55 @@
 	<link rel="stylesheet" href="static/main.css">
 </head>
 <body>
+	<div class="input-group mb-3 ml-3 mt-3">
+		<input id="inputDnsServerIp" type="text" placeholder="DNS服务器">
+		<div class="input-group-append">
+			<button class="btn btn-outline-primary" type="button" onclick="inputDnsServerIp.val(chooseRandomItem(chooseRandomItem(arrDnsServers)[1]))"><i class="fas fa-redo"></i></button>
+			<button class="btn btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+			<div id="ddDnsServerIpList" class="dropdown-menu">
+			</div>
+		</div>
+	</div>
+	
+	<div class="input-group mb-3 ml-3">
+		<input id="inputQueryDomain" type="text" placeholder="待查询的域名">
+		<div class="input-group-append">
+			<button class="btn btn-outline-primary" type="button"><i class="fas fa-redo"></i></button>
+			<button class="btn btn-outline-primary" type="button" onclick="query()">查询</button>
+		</div>
+	</div>
+
+	<div class="btn-group mb-3 ml-3" role="group">
+		<button type="button" class="btn btn-primary" onclick="isLogic=true; applyIsLogic()">逻辑视图</button>
+		<button type="button" class="btn btn-primary" onclick="isLogic=false; applyIsLogic()">物理视图</button>
+	</div>
+	
 	<svg>
 	</svg>
-	
-		<div class="input-group mb-3 ml-3">
-			<input id="inputDnsServerIp" type="text" placeholder="DNS服务器">
-			<div class="input-group-append">
-				<button class="btn btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-				<div class="dropdown-menu">
-					<label class="dropdown-item">(没有可用的DNS服务器)</label>
-				</div>
-			</div>
-		</div>
-		
-		<div class="input-group mb-3 ml-3">
-			<input id="inputQueryDomain" type="text" placeholder="待查询的域名">
-			<div class="input-group-append">
-				<button class="btn btn-outline-primary" type="button"><i class="fas fa-redo"></i></button>
-				<button class="btn btn-outline-primary" type="button" onclick="query()">查询</button>
-			</div>
-		</div>
-	
-		<div class="btn-group mb-3 ml-3" role="group">
-			<button type="button" class="btn btn-primary" onclick="isLogic=true; applyIsLogic()">逻辑视图</button>
-			<button type="button" class="btn btn-primary" onclick="isLogic=false; applyIsLogic()">物理视图</button>
-		</div>
 
 </body>
+<script>
+	/* 寻找页面元素并绑定为变量 */
+	let inputQueryDomain = $("#inputQueryDomain");
+	let inputDnsServerIp = $("#inputDnsServerIp");
+	let ddDnsServerIpList = $("#ddDnsServerIpList");
+</script>
+<script>
+	/* 初始化DNS服务器与待查询域名的可选项 */
+	let arrDnsServers = [
+		["谷歌", ["8.8.8.8", "8.8.4.4"]],
+		["阿里", ["223.5.5.5", "223.6.6.6"]],
+		["DNSPod", ["119.29.29.29", "182.254.116.116"]],
+		["114DNS", ["114.114.114.114", "114.114.115.115"]],
+		["DNS派", ["101.226.4.6", "218.30.118.6"]]
+	];
+	arrDnsServers.forEach((item) => {
+		let a = item[0], b1 = item[1][0], b2 = item[1][1];
+		ddDnsServerIpList.append("<a class='dropdown-item' onclick='inputDnsServerIp.val(\""+b1+"\")'>"+a+"(首选) "+b1+"</a>");
+		ddDnsServerIpList.append("<a class='dropdown-item' onclick='inputDnsServerIp.val(\""+b2+"\")'>"+a+"(备选) "+b2+"</a>");
+	});
+	
+</script>
 <script>
 	/* 常参数定义 */
 	const svgWidth = 1950 / 2;
@@ -279,8 +301,6 @@
 		update();
 		
 		/* 获取参数 */
-		let inputQueryDomain = $("#inputQueryDomain");
-		let inputDnsServerIp = $("#inputDnsServerIp");
 		let strQueryDomain = inputQueryDomain.val() || inputQueryDomain.attr("placeholder");
 		let strDnsServerIp = inputDnsServerIp.val();
 		
