@@ -1,6 +1,5 @@
 import ipaddress
 import dns.resolver
-from geo import ip_with_geo_info
 
 
 def query(qname, dns_server=None, qtype=None, timeout=1):
@@ -27,12 +26,9 @@ def query(qname, dns_server=None, qtype=None, timeout=1):
 		rdtype = {1: 'A', 2: 'NS', 5: 'CNAME'}[answers[0].rdtype] if len(answers) else 'NS'
 		answers = list(_.to_text() for _ in answers[0]) if len(answers) else list()
 
-		# 当查询类型为NS时, 将各ns的ip地址带上地理信息一并加入到answers中
+		# 当查询类型为NS时, 将各ns的ip地址一并加入到answers中
 		if rdtype == 'NS':
-			answers = list([ns, list(ip_with_geo_info(_.to_text()) for _ in dns.resolver.query(ns))] for ns in answers)
-		# 当查询类型为A时, 也将各ip地址的地理信息加上
-		elif rdtype == 'A':
-			answers = list(map(ip_with_geo_info, answers))
+			answers = list([ns, list(_.to_text() for _ in dns.resolver.query(ns))] for ns in answers)
 
 		rv = dict(
 			type=rdtype,

@@ -314,10 +314,8 @@
 		let answers = [];
 		let answer = "";
 		let strDnsServerDomain = "";
-		let arrDnsServerIpWithGeo = [];
-		let strIp = "";
 		
-		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, ipToGeo(strDnsServerIp));
+		plus(strDnsServerIp, intStepCount, 0, true, ipToGeo(strDnsServerIp));
 		
 		/* Step 1 查询根域名NS记录 */
 		raw_query(".", strDnsServerIp, "NS", (rv) => {
@@ -328,11 +326,9 @@
 			answers = rv.answers;
 			answer = chooseRandomItem(answers);
 			strDnsServerDomain = answer[0];
-			arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
-			strDnsServerIp = arrDnsServerIpWithGeo[0];
+			strDnsServerIp = chooseRandomItem(answer[1]);
 			answers.forEach((ans, i) => {
-				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
-				
+				plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, ipToGeo(chooseRandomItem(ans[1])));
 			});
 			
 			/* Step 2 查询顶级域名NS记录 */
@@ -346,10 +342,9 @@
 				answers = rv.answers;
 				answer = chooseRandomItem(answers);
 				strDnsServerDomain = answer[0];
-				arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
-				strDnsServerIp = arrDnsServerIpWithGeo[0];
+				strDnsServerIp = chooseRandomItem(answer[1]);
 				answers.forEach((ans, i) => {
-					plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
+					plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, ipToGeo(chooseRandomItem(ans[1])));
 				});
 				
 				/* Step 3 循环查询主机名A记录 */
@@ -362,10 +357,9 @@
 						answers = rv.answers;
 						answer = chooseRandomItem(answers);
 						strDnsServerDomain = answer[0];
-						arrDnsServerIpWithGeo = chooseRandomItem(answer[1]);
-						strDnsServerIp = arrDnsServerIpWithGeo[0];
+						strDnsServerIp = chooseRandomItem(answer[1]);
 						answers.forEach((ans, i) => {
-							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, chooseRandomItem(ans[1])[1]);
+							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, ipToGeo(chooseRandomItem(ans[1])));
 						});
 						
 						raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
@@ -374,8 +368,7 @@
 						answer = chooseRandomItem(rv.answers);
 						console.log("found", rv.type, "record", answer);
 						if(rv.type === "A") {
-							strIp = answer[0];
-							plus(strIp, intStepCount, 0, true, ipToGeo(strIp));
+							plus(answer, intStepCount, 0, true, ipToGeo(answer));
 						}
 					}
 				}
