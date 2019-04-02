@@ -372,6 +372,9 @@
 					else{
 						let strAnswer = chooseRandomItem(rv.answers);
 						console.log("found", rv.type, "record", strAnswer);
+						if(rv.type === "A") {
+							plus(strAnswer[0], intStepCount, 0, true, [0, 0]); // To do: 把0,0换成本地真实坐标
+						}
 					}
 				}
 				raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
