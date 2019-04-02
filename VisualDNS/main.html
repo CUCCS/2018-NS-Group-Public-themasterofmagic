@@ -26,7 +26,7 @@
 	<div class="input-group mb-3 ml-3">
 		<input id="inputQueryDomain" type="text" placeholder="待查询的域名">
 		<div class="input-group-append">
-			<button class="btn btn-outline-primary" type="button"><i class="fas fa-sync"></i></button>
+			<button class="btn btn-outline-primary" type="button" onclick="get_random_qname()"><i class="fas fa-sync"></i></button>
 			<button class="btn btn-outline-primary" type="button" onclick="query()">查询</button>
 		</div>
 	</div>
@@ -401,6 +401,13 @@
 		y *= svgHeight / imgHeight;
 		
 		return [x, y];
+	}
+	
+	function get_random_qname() {
+		$.getJSON("/api/random_qname", (rv) => {
+			console.log(rv);
+			inputQueryDomain.val(rv["qname"]);
+		});
 	}
 	
 	d3.selection.prototype.bringElementAsTopLayer = function() {
