@@ -26,7 +26,7 @@
 	<div class="input-group mb-3 ml-3">
 		<input id="inputQueryDomain" type="text" placeholder="待查询的域名">
 		<div class="input-group-append">
-			<button class="btn btn-outline-primary" type="button" onclick="get_random_qname()"><i class="fas fa-sync"></i></button>
+			<button class="btn btn-outline-primary" type="button" onclick="getRandomQname()"><i class="fas fa-sync"></i></button>
 			<button class="btn btn-outline-primary" type="button" onclick="query()">查询</button>
 		</div>
 	</div>
@@ -373,7 +373,7 @@
 						let strAnswer = chooseRandomItem(rv.answers);
 						console.log("found", rv.type, "record", strAnswer);
 						if(rv.type === "A") {
-							plus(strAnswer[0], intStepCount, 0, true, [0, 0]); // To do: 把0,0换成本地真实坐标
+							plus(strAnswer[0], intStepCount, 0, true, [139, -35]); // To do: 把0,0换成本地真实坐标
 						}
 					}
 				}
@@ -406,7 +406,7 @@
 		return [x, y];
 	}
 	
-	function get_random_qname() {
+	function getRandomQname() {
 		$.getJSON("/api/random_qname", (rv) => {
 			console.log(rv);
 			inputQueryDomain.val(rv["qname"]);
