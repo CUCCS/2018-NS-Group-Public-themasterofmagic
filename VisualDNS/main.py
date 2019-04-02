@@ -24,10 +24,5 @@ def _():
 	return send_file('main.html')
 
 
-@app.route('/temp')
-def _temp():
-	return send_file('temp.html')
-
-
 if __name__ == '__main__':
 	app.run(host='0.0.0.0')
