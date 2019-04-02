@@ -314,9 +314,10 @@
 		let answers = [];
 		let answer = "";
 		let strDnsServerDomain = "";
-		let arrDnsServerIpWithGeo = "";
+		let arrDnsServerIpWithGeo = [];
+		let strIp = "";
 		
-		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, [0, 0]); // To do: 把0,0换成本地真实坐标
+		plus(strDnsServerIp || "本地DNS服务器", intStepCount, 0, true, ipToGeo(strDnsServerIp));
 		
 		/* Step 1 查询根域名NS记录 */
 		raw_query(".", strDnsServerIp, "NS", (rv) => {
@@ -370,10 +371,11 @@
 						raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
 					}
 					else{
-						let strAnswer = chooseRandomItem(rv.answers);
-						console.log("found", rv.type, "record", strAnswer);
+						answer = chooseRandomItem(rv.answers);
+						console.log("found", rv.type, "record", answer);
 						if(rv.type === "A") {
-							plus(strAnswer[0], intStepCount, 0, true, [139, -35]); // To do: 把0,0换成本地真实坐标
+							strIp = answer[0];
+							plus(strIp, intStepCount, 0, true, ipToGeo(strIp));
 						}
 					}
 				}
@@ -411,6 +413,19 @@
 			console.log(rv);
 			inputQueryDomain.val(rv["qname"]);
 		});
+	}
+	
+	function ipToGeo(ip) {
+		let result = null;
+    $.ajax({
+        url:"/api/ip_to_geo?ip="+ip,
+        dataType:"json",
+        async:false,
+        success:function(data){
+            result = data;
+        }
+    });
+    return result["geo"];
 	}
 	
 	d3.selection.prototype.bringElementAsTopLayer = function() {

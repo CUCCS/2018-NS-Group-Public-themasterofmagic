@@ -3,6 +3,7 @@ from random import choice
 from flask import request, send_file
 from flask_api import FlaskAPI
 from query import query
+from geo import ip_to_geo
 
 app = FlaskAPI(__name__)
 
@@ -23,6 +24,13 @@ with open('static/alexa_100k.txt', 'r') as f:
 @app.route('/api/random_qname')
 def apt_random_qname():
 	return dict(qname=choice(qname_list))
+
+
+@app.route('/api/ip_to_geo')
+def api_ip_to_geo():
+	ip = request.args.get('ip')
+	longi, lati = ip_to_geo(ip)
+	return dict(geo=(longi, lati))
 
 
 @app.route('/<path:path>')
