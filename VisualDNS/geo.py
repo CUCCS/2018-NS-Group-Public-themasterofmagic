@@ -17,7 +17,7 @@ def ip_to_geo(ip):
 	else:
 		_ = reader.city(ip).location
 		rv = (
-			_.longitude,
-			-_.latitude
+				_.longitude,
+				-_.latitude
 		)
 	return rv

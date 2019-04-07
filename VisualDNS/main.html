@@ -13,6 +13,10 @@
 	<link rel="stylesheet" href="static/main.css">
 </head>
 <body>
+
+	<div id="divAlert" class="alert alert-dismissible fade show" role="alert">
+	</div>
+
 	<div class="input-group mb-3 ml-3 mt-3">
 		<input id="inputDnsServerIp" type="text" placeholder="DNS服务器">
 		<div class="input-group-append">
@@ -36,6 +40,8 @@
 		<button type="button" class="btn btn-primary" onclick="isLogic=false; applyIsLogic()">物理视图</button>
 	</div>
 	
+	<br>
+	
 	<svg>
 	</svg>
 
@@ -45,6 +51,7 @@
 	let inputQueryDomain = $("#inputQueryDomain");
 	let inputDnsServerIp = $("#inputDnsServerIp");
 	let ddDnsServerIpList = $("#ddDnsServerIpList");
+	let divAlert = $("#divAlert");
 </script>
 <script>
 	/* 初始化DNS服务器与待查询域名的可选项 */
@@ -283,8 +290,15 @@
 		let isOk = true;
 		if (rv.type === "FAIL") {
 			isOk = false;
-			// To do: 错误处理
-			console.error(rv);
+			let d = {
+				"NO_SUCH_DOMAIN": "域名不存在",
+				"TIMEOUT": "查询超时",
+				"UNSUPPORTED_QTYPE": "查询类型不支持",
+				"INVALID_DNS_SERVER_IP": "DNS服务器IP地址不合法",
+				"UNKNOWN_ERROR": "未知错误"
+			};
+			let info = d[rv.info];
+			alertRed("查询失败!"+info);
 		}
 		return isOk;
 	}
@@ -305,8 +319,7 @@
 		let strDnsServerIp = inputDnsServerIp.val();
 		
 		if (!checkQueryDomain(strQueryDomain)) {
-			// To do: 错误提示
-			console.error("无效的域名:", strQueryDomain);
+			alertRed("查询失败!"+strQueryDomain+"不是个合法的域名");
 			return;
 		}
 		
@@ -315,9 +328,15 @@
 		let answer = "";
 		let strDnsServerDomain = "";
 		
-		plus(strDnsServerIp, intStepCount, 0, true, ipToGeo(strDnsServerIp));
+		let geo = ipToGeo(strDnsServerIp);
+		if (geo === null) {
+			alertRed("查询失败!"+strDnsServerIp+"不是个合法的DNS服务器ip");
+			return;
+		}
+		plus(strDnsServerIp, intStepCount, 0, true, geo);
 		
 		/* Step 1 查询根域名NS记录 */
+		alertYellow("正在等待"+strDnsServerIp+"的回应...");
 		raw_query(".", strDnsServerIp, "NS", (rv) => {
 			intStepCount += 1;
 			console.log("Step", intStepCount, "rv:", rv);
@@ -334,6 +353,7 @@
 			/* Step 2 查询顶级域名NS记录 */
 			let parts = strQueryDomain.split('.');
 			let strTopDomain = parts[parts.length - (parts[parts.length - 1] === "" ? 2 : 1)] + ".";
+			alertYellow("正在等待"+strDnsServerDomain+"的回应...");
 			raw_query(strTopDomain, strDnsServerIp, "NS", (rv) => {
 				intStepCount += 1;
 				console.log("Step", intStepCount, "rv:", rv);
@@ -362,19 +382,48 @@
 							plus(ans[0], intStepCount, i, ans[0] === strDnsServerDomain, ipToGeo(chooseRandomItem(ans[1])));
 						});
 						
+						alertYellow("正在等待"+strDnsServerDomain+"的回应...");
 						raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
 					}
 					else{
 						answer = chooseRandomItem(rv.answers);
-						console.log("found", rv.type, "record", answer);
+						(rv.type === "A" ? alertGreen : alertBlue)("查询成功!目标的"+rv.type+"记录为"+answer);
 						if(rv.type === "A") {
 							plus(answer, intStepCount, 0, true, ipToGeo(answer));
 						}
 					}
 				}
+				alertYellow("正在等待"+strDnsServerDomain+"的回应...");
 				raw_query(strQueryDomain, strDnsServerIp, "A", loopBody);
 			})
 		});
+	}
+</script>
+<script>
+	function clearAlert() {
+		["alert-primary", "alert-success", "alert-warning", "alert-danger"].forEach((cls) => {
+			divAlert.removeClass(cls);
+		})
+	}
+	function alertBlue(content) {
+		clearAlert();
+		divAlert.addClass("alert-primary");
+		divAlert.html(content);
+	}
+	function alertYellow(content) {
+		clearAlert();
+		divAlert.addClass("alert-warning");
+		divAlert.html(content);
+	}
+	function alertGreen(content) {
+		clearAlert();
+		divAlert.addClass("alert-success");
+		divAlert.html(content);
+	}
+	function alertRed(content) {
+		clearAlert();
+		divAlert.addClass("alert-danger");
+		divAlert.html(content);
 	}
 </script>
 <script>
@@ -418,7 +467,14 @@
             result = data;
         }
     });
-    return result["geo"];
+    let rv;
+    if (result["status"] === "OK") {
+			rv = result["geo"];
+		}
+		else {
+			rv = null;
+		}
+		return rv;
 	}
 	
 	d3.selection.prototype.bringElementAsTopLayer = function() {

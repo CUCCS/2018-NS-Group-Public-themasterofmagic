@@ -4,6 +4,7 @@ from flask import request, send_file
 from flask_api import FlaskAPI
 from query import query
 from geo import ip_to_geo
+from utils import is_ip_valid
 
 app = FlaskAPI(__name__)
 
@@ -29,8 +30,11 @@ def apt_random_qname():
 @app.route('/api/ip_to_geo')
 def api_ip_to_geo():
 	ip = request.args.get('ip')
-	longi, lati = ip_to_geo(ip)
-	return dict(geo=(longi, lati))
+	if is_ip_valid(ip):
+		rv = dict(status='OK', geo=ip_to_geo(ip))
+	else:
+		rv = dict(status='FAIL', info='INVALID_IP')
+	return rv
 
 
 @app.route('/<path:path>')
@@ -44,4 +48,4 @@ def _():
 
 
 if __name__ == '__main__':
-	app.run(host='0.0.0.0')
+	app.run(host='0.0.0.0', port=80)

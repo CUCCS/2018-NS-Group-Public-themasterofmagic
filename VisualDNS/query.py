@@ -1,15 +1,13 @@
-import ipaddress
 import dns.resolver
+from utils import is_ip_valid
 
 
-def query(qname, dns_server=None, qtype=None, timeout=1):
+def query(qname, dns_server=None, qtype=None, timeout=5):
 	try:
 		resolver = dns.resolver.Resolver()
 		if dns_server:
-			try:
-				ipaddress.ip_address(dns_server)  # 检验是否是ip地址, 若不是则报ValueError
-			except ValueError:
-				raise AssertionError('INVALID_DNS_SERVER')
+			if not is_ip_valid(dns_server):
+				raise AssertionError('INVALID_DNS_SERVER_IP')
 			resolver.nameservers = [dns_server]
 			pass
 		qtype = qtype or 'A'
