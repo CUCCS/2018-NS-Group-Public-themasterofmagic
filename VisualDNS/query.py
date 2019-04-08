@@ -64,4 +64,5 @@ def query(qname, dns_server=None, qtype=None, timeout=5):
 			info='UNKNOWN_ERROR'
 		)
 		print(e)
+		raise e
 	return rv
