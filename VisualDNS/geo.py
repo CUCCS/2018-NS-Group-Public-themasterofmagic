@@ -1,9 +1,7 @@
 import json
 from random import choice
-import geoip2.database
+import IP2Location
 
-
-reader = geoip2.database.Reader('GeoLite2-City.mmdb')
 with open('static/root_servers.json', 'r') as f:
 	text = f.read()
 root_servers = json.loads(text)
@@ -15,9 +13,21 @@ def ip_to_geo(ip):
 		longi, lati = choice(root_servers[ip])
 		rv = (longi, -lati)
 	else:
-		_ = reader.city(ip).location
+		database = IP2Location.IP2Location('IP2LOCATION-LITE-DB5.BIN')
+
+		rec = database.get_all(ip)
+
+		'''
+		rec.country_short
+		rec.country_long
+		rec.region
+		rec.city
+		rec.latitude
+		rec.longitude
+		'''
+
 		rv = (
-				_.longitude,
-				-_.latitude
+				rec.longitude,
+				-rec.latitude
 		)
 	return rv
