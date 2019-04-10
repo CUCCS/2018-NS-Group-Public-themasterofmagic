@@ -309,6 +309,7 @@ let Visual = {
 		node
 			.filter((d) => d.chosen)
 			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
+			.bringElementAsTopLayer()
 		;
 		
 		Visual.node = node;
@@ -356,6 +357,7 @@ let Visual = {
 		path
 			.filter((d) => d.target.chosen)
 			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
+			.bringElementAsTopLayer()
 		;
 		Visual.path = path;
 	},
