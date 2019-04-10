@@ -36,6 +36,16 @@ svg {
     stroke-width: 1px;
 }
 
-p {
+body, p {
   text-align:center;
+}
+
+input{
+    margin: 0 0 0 auto;
+    float: none;
+}
+
+.input-group-append{
+  margin: 0 auto 0 0;
+  float: none;
 }

@@ -279,7 +279,7 @@ let DNS = {
 		blue: (content) => DNS.alert._raw(content, "primary"),
 		green: (content) => DNS.alert._raw(content, "success"),
 		_raw: (content, cls) => {
-			DNS.divAlert.attr("class", "alert alert-dismissible fade show alert-" + cls);
+			DNS.divAlert.attr("class", "ml-3 mt-3 mr-3 alert alert-dismissible fade show alert-" + cls);
 			DNS.divAlert.html(content);
 		}
 	},
