@@ -306,6 +306,10 @@ let Visual = {
 			.filter((d) => !d.chosen)
 			.call(Visual.logic ? Visual.animation.fadeIn : Visual.animation.fadeOut, Visual.constant.fadeDuration)
 		;
+		node
+			.filter((d) => d.chosen)
+			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
+		;
 		
 		Visual.node = node;
 		/* path部分 */
@@ -348,6 +352,10 @@ let Visual = {
 		path
 			.filter((d) => !d.target.chosen)
 			.call(Visual.logic ? Visual.animation.fadeIn : Visual.animation.fadeOut, Visual.constant.fadeDuration)
+		;
+		path
+			.filter((d) => d.target.chosen)
+			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
 		;
 		Visual.path = path;
 	},
