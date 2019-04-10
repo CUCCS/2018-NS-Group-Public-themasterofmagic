@@ -2721,7 +2721,7 @@ function interpolateString(a, b) {
       bm, // current match in b
       bs, // string preceding current number in b, if any
       i = -1, // index in s
-      s = [], // string constants and placeholders
+      s = [], // string constant and placeholders
       q = []; // number interpolators
 
   // Coerce inputs to strings.
@@ -2889,7 +2889,7 @@ function interpolateTransform(parse, pxComma, pxParen, degParen) {
   }
 
   return function(a, b) {
-    var s = [], // string constants and placeholders
+    var s = [], // string constant and placeholders
         q = []; // number interpolators
     a = parse(a), b = parse(b);
     translate(a.translateX, a.translateY, b.translateX, b.translateY, s, q);

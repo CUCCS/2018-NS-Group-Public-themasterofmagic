@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>visual</title>
+	<script src="jquery-3.3.1.js"></script>
+	<script src="popper.min.js"></script>
+	<script src="bootstrap.min.js"></script>
+	<script src="d3.v5.js"></script>
+	<script src="d3.tip.js"></script>
+	<script src="solid.js"></script>
+	<script src="fontawesome.js"></script>
+	<script src="Visual.js"></script>
+	<script src="DNS.js"></script>
+ 
+	<link rel="stylesheet" href="bootstrap.min.css">
+	<link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<div id="DNS">
+	<div id="divAlert" class="alert alert-dismissible fade show" role="alert"></div>
+	<div class="input-group mb-3 ml-3 mt-3">
+		<input id="inputDnsServerIp" type="text" placeholder="DNS服务器">
+		<div class="input-group-append">
+			<button id="btnRandomDnsServerIp" class="btn btn-outline-primary" type="button"><i class="fas fa-sync"></i></button>
+			<button class="btn btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+			<div id="ddDnsServerIpList" class="dropdown-menu"></div>
+		</div>
+	</div>
+	
+	<div class="input-group mb-3 ml-3">
+		<input id="inputQname" type="text" placeholder="待查询的域名">
+		<div class="input-group-append">
+			<button id="btnRandomQname" class="btn btn-outline-primary" type="button"><i class="fas fa-sync"></i></button>
+			<button id="btnQuery" class="btn btn-outline-primary" type="button">查询</button>
+		</div>
+	</div>
+
+	<div class="btn-group mb-3 ml-3" role="group">
+		<button type="button" class="btn btn-primary" onclick="Visual.turnLogic()">逻辑视图</button>
+		<button type="button" class="btn btn-primary" onclick="Visual.turnPhysical()">物理视图</button>
+	</div>
+</div>
+
+<div id="Visual"></div>
+
+<script>
+	
+
+	DNS.init("#DNS");
+	Visual.init("#Visual");
+	DNS.callbacks.externalReset = Visual.clear;
+	DNS.callbacks.plus = Visual.plus;
+	DNS.callbacks.choose = Visual.choose;
+	DNS.callbacks.fail = Visual.fail;
+
+</script>
+</body>
+</html>
