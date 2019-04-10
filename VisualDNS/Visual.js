@@ -22,7 +22,7 @@ let Visual = {
 		physicalR: 10,
 		arrowHeadHeight: 5,
 		blinkDuration: 100,
-		fadeInDuration: 1000,
+		fadeDuration: 1000,
 		moveDuration: 1500,
 		colorOk: "#4C4",
 		colorA: "#4C4",
@@ -110,33 +110,21 @@ let Visual = {
 				;
 			});
 		},
-		fadeIn: (element, duration) => {
-			let fadeInLocks = Visual.animationLocks.fade;
+		fadeIn: (element, duration) => Visual.animation.fade(element, duration, 1),
+		fadeOut: (element, duration) => Visual.animation.fade(element, duration, 0),
+		fade: (element, duration, targetOpacity) => {
+			let locks = Visual.animationLocks.fade;
 			element.each((d) => {
 				let id = d.id;
-				let fadeInInterpolateNumber = d3.interpolateNumber(Visual.getCircleById(id), 1);
-				fadeInLocks[id] = {};
-				d3.select(fadeInLocks[id])
+				let inInterpolateNumber = d3.interpolateNumber(element.filter((_d) => _d.id === id).attr("opacity"), targetOpacity);
+				locks[id] = {};
+				d3.select(locks[id])
 					.transition()
 					.duration(duration)
 					.ease(d3.easeSin)
-					.tween("attr:opacity", () => (t) => element.attr("opacity", fadeInInterpolateNumber(t)))
+					.tween("attr:opacity", () => (t) => element.attr("opacity", inInterpolateNumber(t)))
 				;
-			});
-		},
-		fadeOut: (element, duration) => {
-			let fadeInLocks = Visual.animationLocks.fade;
-			element.each((d) => {
-				let id = d.id;
-				let fadeInInterpolateNumber = d3.interpolateNumber(Visual.getCircleById(id), 0);
-				fadeInLocks[id] = {};
-				d3.select(fadeInLocks[id])
-					.transition()
-					.duration(duration)
-					.ease(d3.easeSin)
-					.tween("attr:opacity", () => (t) => element.attr("opacity", fadeInInterpolateNumber(t)))
-				;
-			});
+			})
 		}
 	},
 	init: (strSelector) => {
@@ -225,7 +213,7 @@ let Visual = {
 			console.error("未选择第"+(intLv-1)+"层节点时不可添加第"+intLv+"层节点");
 			return;
 		}
-		d.chosen = 0;
+		d.chosen = typeof(d.end) === "undefined" ? 0 : 1;
 		
 		d.id = Visual.listNodeDatum.length;
 		/* 如果当前层次尚未出现过 */
@@ -242,7 +230,7 @@ let Visual = {
 				Visual.intMinLv = intLv;
 			}
 			if(d.intLv > 0) {
-				Visual.getCircleById(Visual.dictLvToChosenData[d.intLv - 1].id)
+				Visual.getElementById(Visual.dictLvToChosenData[d.intLv - 1].id)
 					.call(Visual.animation.stopBlink, Visual.constant.colorOk)
 				;
 			}
@@ -276,7 +264,7 @@ let Visual = {
 		Visual.node.filter((_d) => _d.intLv === d.intLv)
 			.attr("fill", "#888")
 		;
-		Visual.getCircleById(d.id)
+		Visual.getElementById(d.id)
 			.call(Visual.animation.blink, Visual.constant.blinkDuration)
 			.bringElementAsTopLayer()
 		;
@@ -292,7 +280,7 @@ let Visual = {
 			.attr("r", Visual.logic ? Visual.constant.logicR : Visual.constant.physicalR)
 			.attr("fill", (d) => typeof(d.end) === "undefined" ? "#888" : Visual.constant["color"+d.end])
 			.attr("data-content", "Wow!")
-			.attr("transform", (d) => d.intLv === 0 ? `translate(0,0)` : Visual.getCircleById(Visual.dictLvToChosenData[d.intLv-1].id).attr("transform"))
+			.attr("transform", (d) => d.intLv === 0 ? `translate(0,0)` : Visual.getElementById(Visual.dictLvToChosenData[d.intLv-1].id).attr("transform"))
 			.attr("opacity", 0)
       .on('mouseover', (d, n, a) => {
       	window.clearInterval(Visual.toolTipTimer);
@@ -310,10 +298,15 @@ let Visual = {
       	Visual.toolTip.hide(d, n, a);
       	window.clearInterval(Visual.toolTipTimer);
 			})
-			.call(Visual.animation.fadeIn, Visual.constant.fadeInDuration)
+			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
 			.merge(node)
 			.call(Visual.animation.move, Visual.constant.moveDuration)
 		;
+		node
+			.filter((d) => !d.chosen)
+			.call(Visual.logic ? Visual.animation.fadeIn : Visual.animation.fadeOut, Visual.constant.fadeDuration)
+		;
+		
 		Visual.node = node;
 		/* path部分 */
 		let path = Visual.path;
@@ -321,13 +314,13 @@ let Visual = {
 		path.exit().remove();
 		path = path.enter().append("svg:path")
 			.attr("d", (d) => {
-				let source = Visual.extractTransform(Visual.getCircleById(d.source.id));
-				let target = Visual.extractTransform(Visual.getCircleById(d.target.id));
+				let source = Visual.extractTransform(Visual.getElementById(d.source.id));
+				let target = Visual.extractTransform(Visual.getElementById(d.target.id));
 				return `M${source}L${target}`
 			})
 			.attr("class", "link")
 			.style('marker-end', 'url(#end-arrow)')
-			.call(Visual.animation.fadeIn, Visual.constant.fadeInDuration)
+			.call(Visual.animation.fadeIn, Visual.constant.fadeDuration)
 			.merge(path)
 		;
 		path
@@ -346,18 +339,22 @@ let Visual = {
 				let dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 				let normX = deltaX / dist;
 				let normY = deltaY / dist;
-				let targetR = Visual.getCircleById(d.target.id).attr("r");
+				let targetR = Visual.getElementById(d.target.id).attr("r");
 				targetX -= targetR*normX;
 				targetY -= targetR*normY;
 				return `M${sourceX},${sourceY}L${targetX},${targetY}`
 			})
 		;
+		path
+			.filter((d) => !d.target.chosen)
+			.call(Visual.logic ? Visual.animation.fadeIn : Visual.animation.fadeOut, Visual.constant.fadeDuration)
+		;
 		Visual.path = path;
 	},
 	extractTransform: (c) => c.attr("transform").slice(9).slice(1, -1),
-	getCircleById: (id) => d3.select(Visual.node["_groups"][0][id]),
+	getElementById: (id) => d3.select((id >= 0 ? Visual.node : Visual.path)._groups[0][id]),
 	fail: () => {
-		Visual.getCircleById(Visual.dictLvToChosenData[Visual.intMaxLv].id)
+		Visual.getElementById(Visual.dictLvToChosenData[Visual.intMaxLv].id)
 			.call(Visual.animation.stopBlink, Visual.constant.colorError)
 		;
 	},
