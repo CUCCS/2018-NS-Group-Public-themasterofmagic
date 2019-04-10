@@ -17,8 +17,8 @@ let Visual = {
 	constant: {
 		svgWidth: 1950 / 2,
 		svgHeight: 910 / 2,
-		logicR: 10,
-		logicStep: 30,
+		logicR: 25,
+		logicStep: 60,
 		physicalR: 10,
 		arrowHeadHeight: 5,
 		blinkDuration: 100,
@@ -241,11 +241,11 @@ let Visual = {
 		}
 		
 		let temp = Visual.dictLvToCount[intLv];
-		d.posY = (temp%2 ? 1 : -1) * Math.floor(temp/2);
+		d.posX = (temp%2 ? 1 : -1) * Math.floor(temp/2);
 		
 		Visual.listNodeDatum.push(d);
 		Visual.listNodeDatum.forEach((d) => {
-			d.posX = d.intLv - (Visual.intMaxLv + Visual.intMinLv)/2;
+			d.posY = d.intLv - (Visual.intMaxLv + Visual.intMinLv)/2;
 		});
 		
 		if(intLv > 0){
@@ -343,7 +343,7 @@ let Visual = {
 				let dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 				let normX = deltaX / dist;
 				let normY = deltaY / dist;
-				let targetR = Visual.getElementById(d.target.id).attr("r");
+				let targetR = Visual.logic ? Visual.constant.logicR : Visual.constant.physicalR;
 				targetX -= targetR*normX;
 				targetY -= targetR*normY;
 				return `M${sourceX},${sourceY}L${targetX},${targetY}`
@@ -395,7 +395,7 @@ let Visual = {
 	setTargetXY: (d) => {
 		if(Visual.logic){
 			d.targetX = d.posX * Visual.constant.logicStep;
-			d.targetY = d.posY * Visual.constant.logicStep;
+			d.targetY = d.posY * Visual.constant.logicStep - Visual.constant.svgHeight/4;
 		}
 		else{
 			let targetXY = Visual.geoToSvgPos(d.longitude, d.latitude);
