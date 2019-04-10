@@ -109,11 +109,12 @@ let DNS = {
 			/* 根据返回结果构造节点数据 */
 			datum = [];
 			rv.answers.forEach((ans) => {
-				geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
+				let ip = chooseRandomItem(ans[1]);
+				geo = DNS.ipToGeo(ip);
 				datum.push({
 					intLv: intLv,
 					domain: ans[0],
-					ip: strDnsServerIp,
+					ip: ip,
 					longitude: geo[0],
 					latitude: geo[1]
 				});
@@ -136,11 +137,12 @@ let DNS = {
 					/* 根据返回结果构造节点数据 */
 					datum = [];
 					rv.answers.forEach((ans) => {
-						geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
+						let ip = chooseRandomItem(ans[1]);
+						geo = DNS.ipToGeo(ip);
 						datum.push({
 							intLv: intLv,
 							domain: ans[0],
-							ip: strDnsServerIp,
+							ip: ip,
 							longitude: geo[0],
 							latitude: geo[1]
 						});
@@ -162,11 +164,12 @@ let DNS = {
 								/* 根据返回结果构造节点数据 */
 								datum = [];
 								rv.answers.forEach((ans) => {
-									geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
+									let ip = chooseRandomItem(ans[1]);
+									geo = DNS.ipToGeo(ip);
 									datum.push({
 										intLv: intLv,
 										domain: ans[0],
-										ip: strDnsServerIp,
+										ip: ip,
 										longitude: geo[0],
 										latitude: geo[1]
 									});
