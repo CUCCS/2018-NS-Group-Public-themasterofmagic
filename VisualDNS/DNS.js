@@ -1,7 +1,7 @@
-d3.selection.prototype.value = function(value){
+d3.selection.prototype.value = function (value) {
 	let rv = null;
-	this.each(function(){
-		if(typeof(value) !== "undefined") {
+	this.each(function () {
+		if (typeof(value) !== "undefined") {
 			this.value = value;
 		}
 		rv = this.value;
@@ -14,6 +14,7 @@ function chooseRandomItem(items) {
 }
 
 let DNS = {
+	intNewLvInterval: 3000,
 	arrDnsServers: [
 		["谷歌", ["8.8.8.8", "8.8.4.4"]],
 		["阿里", ["223.5.5.5", "223.6.6.6"]],
@@ -69,6 +70,9 @@ let DNS = {
 		let plus = DNS.callbacks.plus,
 			choose = DNS.callbacks.choose;
 		
+		/* 时间记录, 防止更新过快 */
+		let dictLvToTime = {};
+		
 		/* 重置外部内容 */
 		DNS.callbacks.externalReset();
 		
@@ -76,36 +80,38 @@ let DNS = {
 		let strQname = DNS.inputQname.value();
 		let strDnsServerIp = DNS.inputDnsServerIp.value();
 		
-		let intStepCount = 0;
+		let intLv = 0;
 		
 		let geo = DNS.ipToGeo(strDnsServerIp);
 		if (geo === null) {
-			DNS.alert.red("查询失败!"+strDnsServerIp+"不是个合法的DNS服务器ip");
+			DNS.alert.red("查询失败!" + strDnsServerIp + "不是个合法的DNS服务器ip");
 			return;
 		}
 		let datum;
 		
 		let d = {
-			intLv: intStepCount,
+			intLv: intLv,
 			ip: strDnsServerIp,
 			longitude: geo[0],
 			latitude: geo[1]
 		};
 		plus(d);
+		dictLvToTime[intLv] = DNS.currentTime();
 		choose(d);
 		
 		/* Step 1 查询根域名NS记录 */
-		DNS.alert.yellow("正在等待"+strDnsServerIp+"的回应...");
+		DNS.alert.yellow("正在等待" + strDnsServerIp + "的回应...");
 		
 		rawQuery(".", strDnsServerIp, "NS", (rv) => {
-			intStepCount += 1;
+			DNS.alert.blue("收到" + strDnsServerIp + "的回应!");
+			intLv += 1;
 			if (!checkQueryRv(rv)) return;
 			/* 根据返回结果构造节点数据 */
 			datum = [];
 			rv.answers.forEach((ans) => {
 				geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
 				datum.push({
-					intLv: intStepCount,
+					intLv: intLv,
 					domain: ans[0],
 					ip: strDnsServerIp,
 					longitude: geo[0],
@@ -116,96 +122,104 @@ let DNS = {
 				plus(d);
 			});
 			d = chooseRandomItem(datum);
-			choose(d);
-			/* Step 2 查询顶级域名NS记录 */
-			let parts = strQname.split('.');
-			let strTopDomain = parts[parts.length - (parts[parts.length - 1] === "" ? 2 : 1)] + ".";
-			DNS.alert.yellow("正在等待"+d.domain+"的回应...");
-			rawQuery(strTopDomain, d.ip, "NS", (rv) => {
-				intStepCount += 1;
-				if (!checkQueryRv(rv)) return;
-				/* 根据返回结果构造节点数据 */
-				datum = [];
-				rv.answers.forEach((ans) => {
-					geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
-					datum.push({
-						intLv: intStepCount,
-						domain: ans[0],
-						ip: strDnsServerIp,
-						longitude: geo[0],
-						latitude: geo[1]
-					});
-				});
-				datum.forEach((d) => {
-					plus(d);
-				});
-				d = chooseRandomItem(datum);
+			setTimeout(() => {
+				dictLvToTime[intLv] = DNS.currentTime();
 				choose(d);
-				
-				/* Step 3 循环查询主机名A记录 */
-				function loopBody(rv) {
-					intStepCount += 1;
+				/* Step 2 查询顶级域名NS记录 */
+				let parts = strQname.split('.');
+				let strTopDomain = parts[parts.length - (parts[parts.length - 1] === "" ? 2 : 1)] + ".";
+				DNS.alert.yellow("正在等待" + d.domain + "的回应...");
+				rawQuery(strTopDomain, d.ip, "NS", (rv) => {
+					DNS.alert.blue("收到" + d.domain + "的回应!");
+					intLv += 1;
 					if (!checkQueryRv(rv)) return;
-					
-					if(rv.type === "NS") {
-						/* 根据返回结果构造节点数据 */
-						datum = [];
-						rv.answers.forEach((ans) => {
-							geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
-							datum.push({
-								intLv: intStepCount,
-								domain: ans[0],
-								ip: strDnsServerIp,
-								longitude: geo[0],
-								latitude: geo[1]
-							});
+					/* 根据返回结果构造节点数据 */
+					datum = [];
+					rv.answers.forEach((ans) => {
+						geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
+						datum.push({
+							intLv: intLv,
+							domain: ans[0],
+							ip: strDnsServerIp,
+							longitude: geo[0],
+							latitude: geo[1]
 						});
-						datum.forEach((d) => {
-							plus(d);
-						});
-						d = chooseRandomItem(datum);
+					});
+					datum.forEach((d) => {
+						plus(d);
+					});
+					d = chooseRandomItem(datum);
+					setTimeout(() => {
 						choose(d);
 						
-						DNS.alert.yellow("正在等待"+d.domain+"的回应...");
+						/* Step 3 循环查询主机名A记录 */
+						function loopBody(rv) {
+							intLv += 1;
+							if (!checkQueryRv(rv)) return;
+							
+							if (rv.type === "NS") {
+								DNS.alert.blue("收到" + d.domain + "的回应!");
+								/* 根据返回结果构造节点数据 */
+								datum = [];
+								rv.answers.forEach((ans) => {
+									geo = DNS.ipToGeo(chooseRandomItem(ans[1]));
+									datum.push({
+										intLv: intLv,
+										domain: ans[0],
+										ip: strDnsServerIp,
+										longitude: geo[0],
+										latitude: geo[1]
+									});
+								});
+								datum.forEach((d) => {
+									plus(d);
+								});
+								d = chooseRandomItem(datum);
+								setTimeout(() => {
+									choose(d);
+									DNS.alert.yellow("正在等待" + d.domain + "的回应...");
+									rawQuery(strQname, d.ip, "A", loopBody);
+								}, dictLvToTime[intLv - 1] + DNS.intNewLvInterval - DNS.currentTime());
+							}
+							else {
+								let answer = chooseRandomItem(rv.answers);
+								let alertInfo = "查询成功!目标的" + rv.type + "记录为" + answer;
+								if (rv.type === "A") {
+									geo = DNS.ipToGeo(answer);
+									d = {
+										intLv: intLv,
+										domain: strQname,
+										ip: answer,
+										longitude: geo[0],
+										latitude: geo[1],
+										end: "A"
+									};
+									plus(d);
+									DNS.alert.green(alertInfo)
+								}
+								else if (rv.type === "CNAME") {
+									rawQuery(answer, null, "A", (rv) => {
+										geo = DNS.ipToGeo(chooseRandomItem(rv.answers));
+										d = {
+											intLv: intLv,
+											domain: strQname,
+											cname: answer,
+											longitude: geo[0],
+											latitude: geo[1],
+											end: "CNAME"
+										};
+										plus(d);
+										DNS.alert.blue(alertInfo)
+									})
+								}
+							}
+						}
+						
+						DNS.alert.yellow("正在等待" + d.domain + "的回应...");
 						rawQuery(strQname, d.ip, "A", loopBody);
-					}
-					else{
-						let answer = chooseRandomItem(rv.answers);
-						let alertInfo = "查询成功!目标的"+rv.type+"记录为"+answer;
-						if(rv.type === "A"){
-							geo = DNS.ipToGeo(answer);
-							d = {
-								intLv: intStepCount,
-								domain: strQname,
-								ip: answer,
-								longitude: geo[0],
-								latitude: geo[1],
-								end: "A"
-							};
-							plus(d);
-							DNS.alert.green(alertInfo)
-						}
-						else if(rv.type === "CNAME"){
-							rawQuery(answer, null, "A", (rv) => {
-								geo = DNS.ipToGeo(chooseRandomItem(rv.answers));
-								d = {
-									intLv: intStepCount,
-									domain: strQname,
-									cname: answer,
-									longitude: geo[0],
-									latitude: geo[1],
-									end: "CNAME"
-								};
-								plus(d);
-								DNS.alert.blue(alertInfo)
-							})
-						}
-					}
-				}
-				
-				DNS.alert.yellow("正在等待"+d.domain+"的回应...");
-				rawQuery(strQname, d.ip, "A", loopBody);
-			})
+					}, dictLvToTime[intLv - 1] + DNS.intNewLvInterval - DNS.currentTime());
+				})
+			}, dictLvToTime[intLv - 1] + DNS.intNewLvInterval - DNS.currentTime());
 		});
 	},
 	rawQuery: (strDomain, strDnsServer, strQueryType, callback) =>
@@ -223,23 +237,23 @@ let DNS = {
 				"UNKNOWN_ERROR": "未知错误"
 			};
 			let info = d[rv.info];
-			DNS.alert.red("查询失败!"+info);
+			DNS.alert.red("查询失败!" + info);
 			DNS.callbacks.fail();
 		}
 		return isOk;
 	},
 	ipToGeo: (ip) => {
 		let result = null;
-    $.ajax({
-        url:"/api/ip_to_geo?ip="+ip,
-        dataType:"json",
-        async:false,
-        success:function(data){
-            result = data;
-        }
-    });
-    let rv;
-    if (result["status"] === "OK") {
+		$.ajax({
+			url: "/api/ip_to_geo?ip=" + ip,
+			dataType: "json",
+			async: false,
+			success: function (data) {
+				result = data;
+			}
+		});
+		let rv;
+		if (result["status"] === "OK") {
 			rv = result["geo"];
 		}
 		else {
@@ -249,9 +263,12 @@ let DNS = {
 	},
 	GET: $.getJSON,
 	callbacks: {
-		externalReset: () => {},
-		plus: () => {},
-		choose: () => {}
+		externalReset: () => {
+		},
+		plus: () => {
+		},
+		choose: () => {
+		}
 	},
 	alert: {
 		red: (content) => DNS.alert._raw(content, "danger"),
@@ -259,8 +276,9 @@ let DNS = {
 		blue: (content) => DNS.alert._raw(content, "primary"),
 		green: (content) => DNS.alert._raw(content, "success"),
 		_raw: (content, cls) => {
-			DNS.divAlert.attr("class", "alert alert-dismissible fade show alert-"+cls);
+			DNS.divAlert.attr("class", "alert alert-dismissible fade show alert-" + cls);
 			DNS.divAlert.html(content);
 		}
-	}
+	},
+	currentTime: () => (new Date()).getTime()
 };
