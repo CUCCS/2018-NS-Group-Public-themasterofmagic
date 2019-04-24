@@ -44,7 +44,7 @@ def index(path):
 
 @app.route('/')
 def _():
-	return send_file('visualDNS.html')
+	return send_file('VisualDNS.html')
 
 
 if __name__ == '__main__':
